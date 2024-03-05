@@ -42,7 +42,6 @@ module Puppet::CatalogDiff
 
         sort_dependencies!(new_resource[:parameters])
         sort_dependencies!(resource[:parameters])
-
         next if new_resource[:parameters] == resource[:parameters]
 
         parameters_in_old[resource[:resource_id]] = \

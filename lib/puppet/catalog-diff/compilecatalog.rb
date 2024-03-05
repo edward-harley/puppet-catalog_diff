@@ -12,12 +12,13 @@ module Puppet::CatalogDiff
 
     attr_reader :node_name
 
-    def initialize(node_name, save_directory, server, certless, catalog_from_puppetdb, puppetdb, puppetdb_tls_cert, puppetdb_tls_key, puppetdb_tls_ca, puppetserver_tls_cert, puppetserver_tls_key, puppetserver_tls_ca)
+    def initialize(node_name, save_directory, server, certless, catalog_from_puppetdb, puppetdb, puppetdb_tls_cert, puppetdb_tls_key, puppetdb_tls_ca, puppetserver_tls_cert, puppetserver_tls_key, puppetserver_tls_ca, facts_dir)
       @node_name = node_name
+      @facts_override = facts_dir.empty? ? false : true
       catalog = if catalog_from_puppetdb
                   get_catalog_from_puppetdb(node_name, server, puppetdb, puppetdb_tls_cert, puppetdb_tls_key, puppetdb_tls_ca)
                 else
-                  catalog = compile_catalog(node_name, server, certless, puppetserver_tls_cert, puppetserver_tls_key, puppetserver_tls_ca)
+                  catalog = compile_catalog(node_name, server, certless, puppetserver_tls_cert, puppetserver_tls_key, puppetserver_tls_ca, facts_dir)
                   clean_sensitive_parameters!(catalog)
                   clean_nested_sensitive_parameters!(catalog)
                   catalog
@@ -68,7 +69,7 @@ module Puppet::CatalogDiff
       convert_pdb(catalog)
     end
 
-    def compile_catalog(node_name, server, certless, tls_cert, tls_key, tls_ca)
+    def compile_catalog(node_name, server, certless, tls_cert, tls_key, tls_ca, facts_dir)
       Puppet.debug("Compiling catalog for #{node_name}")
       server, environment = server.split('/')
       environment ||= lookup_environment(node_name)
@@ -79,19 +80,36 @@ module Puppet::CatalogDiff
       }
 
       if certless
-        endpoint = '/puppet/v4/catalog'
-        headers['Content-Type'] = 'text/json'
-        body = {
-          certname: node_name,
-          environment: environment,
-          persistence: {
-            facts: false,
-            catalog: false,
-          },
-          options: {
-            prefer_requested_environment: true,
-          },
-        }
+        if facts_dir == ''
+          endpoint = '/puppet/v4/catalog'
+          headers['Content-Type'] = 'text/json'
+          body = {
+            certname: node_name,
+            environment: environment,
+            persistence: {
+              facts: false,
+              catalog: false,
+            },
+            options: {
+              prefer_requested_environment: true,
+            },
+          }
+        else
+          endpoint = '/puppet/v4/catalog'
+          headers['Content-Type'] = 'text/json'
+          body = {
+            certname: node_name,
+            environment: environment,
+            facts: JSON.parse(File.read("#{facts_dir}/#{node_name}.json")),
+            persistence: {
+              facts: false,
+              catalog: false,
+            },
+            options: {
+              prefer_requested_environment: true,
+            },
+          }
+        end
       else
         endpoint = "/puppet/v3/catalog/#{node_name}?environment=#{environment}"
       end

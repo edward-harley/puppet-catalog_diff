@@ -93,6 +93,11 @@ Puppet::Face.define(:catalog, '0.0.1') do
       summary 'A manual list of nodes to run catalog diffs against'
     end
 
+    option '--facts_dir=' do
+      summary 'Supply a facts directory which is used to draw facts when compiling catalogs. If not set facts will be pulled from puppetDB'
+      default_to { '' }
+    end
+
     description <<-EOT
       This action is used to seed a series of catalogs from two servers
     EOT
@@ -147,14 +152,16 @@ Puppet::Face.define(:catalog, '0.0.1') do
                   puppetdb_tls_ca: options[:old_puppetdb_tls_ca],
                   puppetserver_tls_cert: options[:old_puppetserver_tls_cert],
                   puppetserver_tls_key: options[:old_puppetserver_tls_key],
-                  puppetserver_tls_ca: options[:old_puppetserver_tls_ca]
+                  puppetserver_tls_ca: options[:old_puppetserver_tls_ca],
+                  facts_dir: ''
                 )
                 new_server = Puppet::Face[:catalog, '0.0.1'].seed(
                   catalog2, node_name,
                   master_server: options[:new_server],
                   certless: options[:certless],
                   catalog_from_puppetdb: options[:new_catalog_from_puppetdb],
-                  puppetdb: options[:new_puppetdb]
+                  puppetdb: options[:new_puppetdb],
+                  facts_dir: options[:facts_dir]
                 )
               else
                 new_server = Puppet::Face[:catalog, '0.0.1'].seed(
@@ -162,7 +169,8 @@ Puppet::Face.define(:catalog, '0.0.1') do
                   master_server: options[:new_server],
                   certless: options[:certless],
                   catalog_from_puppetdb: options[:new_catalog_from_puppetdb],
-                  puppetdb: options[:new_puppetdb]
+                  puppetdb: options[:new_puppetdb],
+                  facts_dir: options[:facts_dir]
                 )
                 old_server = Puppet::Face[:catalog, '0.0.1'].seed(
                   catalog1, node_name,
@@ -175,7 +183,8 @@ Puppet::Face.define(:catalog, '0.0.1') do
                   puppetdb_tls_ca: options[:old_puppetdb_tls_ca],
                   puppetserver_tls_cert: options[:old_puppetserver_tls_cert],
                   puppetserver_tls_key: options[:old_puppetserver_tls_key],
-                  puppetserver_tls_ca: options[:old_puppetserver_tls_ca]
+                  puppetserver_tls_ca: options[:old_puppetserver_tls_ca],
+                  facts_dir: ''
                 )
               end
               mutex.synchronize { compiled_nodes + old_server[:compiled_nodes] }

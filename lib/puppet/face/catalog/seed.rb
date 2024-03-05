@@ -58,6 +58,11 @@ Puppet::Face.define(:catalog, '0.0.1') do
       default_to { localcacert }
     end
 
+    option '--facts_dir=' do
+      summary 'Supply a facts directory which is used to draw facts when compiling catalogs. If not set facts will be pulled from puppetDB'
+      default_to { '' }
+    end
+
     description <<-EOT
       This action is used to seed a series of catalogs to then be compared with diff
     EOT
@@ -109,7 +114,8 @@ Puppet::Face.define(:catalog, '0.0.1') do
                 options[:puppetdb_tls_ca],
                 options[:puppetserver_tls_cert],
                 options[:puppetserver_tls_key],
-                options[:puppetserver_tls_ca]
+                options[:puppetserver_tls_ca],
+                options[:facts_dir]
               )
               mutex.synchronize { compiled_nodes << node_name }
             rescue Exception => e
